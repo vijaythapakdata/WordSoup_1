@@ -1,23 +1,21 @@
-# Python package
-# Create and test a Python package on multiple Python versions.
-# Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/python
-
 trigger:
 - main
 
 pool:
   vmImage: ubuntu-latest
+
 strategy:
   matrix:
-    Python27:
-      python.version: '2.7'
-    Python35:
-      python.version: '3.5'
-    Python36:
-      python.version: '3.6'
     Python37:
       python.version: '3.7'
+    Python38:
+      python.version: '3.8'
+    Python39:
+      python.version: '3.9'
+    Python310:
+      python.version: '3.10'
+    Python311:
+      python.version: '3.11'
 
 steps:
 - task: UsePythonVersion@0
@@ -34,3 +32,26 @@ steps:
     pip install pytest pytest-azurepipelines
     pytest
   displayName: 'pytest'
+
+- script: |
+    flake8 .
+  displayName: 'Lint with flake8'
+
+- script: |
+    python setup.py sdist bdist_wheel
+  displayName: 'Build package'
+
+- task: PublishPipelineArtifact@1
+  inputs:
+    targetPath: '$(Build.ArtifactStagingDirectory)'
+    artifactName: 'python-package'
+  displayName: 'Save build artifacts'
+
+- task: TwineAuthenticate@1
+  inputs:
+    artifactFeed: 'YOUR_FEED_NAME'
+
+- script: |
+    python -m pip install twine
+    twine upload --repository-url YOUR_REPOSITORY_URL -u $(twineUsername) -p $(twinePassword) dist/*
+  displayName: 'Publish package to PyPI-compatible index'
